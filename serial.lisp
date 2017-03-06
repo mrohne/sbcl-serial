@@ -11,7 +11,11 @@
 
 (defparameter *cua-path* #p"/dev/tty.PL2303-00001124")
 
-(defun openraw (pathname &key (speed 57600) (ispeed speed) (ospeed speed) (bits 8) (parity nil))
+(defun openraw (pathname 
+		&key (speed 57600) (ispeed speed) (ospeed speed)
+		  (bits 8) (parity nil) (stop nil)
+		  (clocal t) 
+		  (cread t))
   "Open serial device at PATHNAME"
   (declare (optimize (speed 0)))
   (let ((fd (sb-posix:open (namestring pathname)
@@ -27,13 +31,13 @@
 	(setf ts (sb-posix:cfsetispeed ispeed ts))
 	(ecase bits
 	  (5 (nboole boole-andc2 (sb-posix:termios-cflag ts) sb-posix:csize)
-	     (nboole boole-ior (sb-posix:termios-cflag ts) sb-posix:cs5))
+	     (nboole boole-ior   (sb-posix:termios-cflag ts) sb-posix:cs5))
 	  (6 (nboole boole-andc2 (sb-posix:termios-cflag ts) sb-posix:csize)
-	     (nboole boole-ior (sb-posix:termios-cflag ts) sb-posix:cs6))
+	     (nboole boole-ior   (sb-posix:termios-cflag ts) sb-posix:cs6))
 	  (7 (nboole boole-andc2 (sb-posix:termios-cflag ts) sb-posix:csize)
-	     (nboole boole-ior (sb-posix:termios-cflag ts) sb-posix:cs7))
+	     (nboole boole-ior   (sb-posix:termios-cflag ts) sb-posix:cs7))
 	  (8 (nboole boole-andc2 (sb-posix:termios-cflag ts) sb-posix:csize)
-	     (nboole boole-ior (sb-posix:termios-cflag ts) sb-posix:cs8)))
+	     (nboole boole-ior   (sb-posix:termios-cflag ts) sb-posix:cs8)))
 	(ecase parity
 	  ((nil)
 	   (nboole boole-andc2 (sb-posix:termios-cflag ts) sb-posix:parenb)
@@ -44,8 +48,12 @@
 	  (1
 	   (nboole boole-ior   (sb-posix:termios-cflag ts) sb-posix:parenb)
 	   (nboole boole-ior   (sb-posix:termios-cflag ts) sb-posix:parodd)))
-	(nboole boole-ior (sb-posix:termios-cflag ts) sb-posix:cread)
-	(nboole boole-ior (sb-posix:termios-cflag ts) sb-posix:clocal)
+	(if clocal
+	    (nboole boole-ior (sb-posix:termios-cflag ts) sb-posix:clocal)
+	    (nboole boole-andc2 (sb-posix:termios-cflag ts) sb-posix:clocal))
+	(if cread 
+	    (nboole boole-ior (sb-posix:termios-cflag ts) sb-posix:cread)
+	    (nboole boole-andc2 (sb-posix:termios-cflag ts) sb-posix:cread))
 	(sb-posix:tcsetattr fd sb-posix:tcsanow ts)
 	(sb-sys:make-fd-stream fd
 			       :input t
