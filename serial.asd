@@ -4,5 +4,6 @@
 
 (defsystem :serial
     :depends-on (:readg)
-    :components ((:file "package")
+    :components ((:file "posix")
+		 (:file "package")
 		 (:file "serial" :depends-on ("package"))))

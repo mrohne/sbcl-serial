@@ -11,6 +11,28 @@
 
 (defparameter *cua-path* #p"/dev/tty.PL2303-00001124")
 
+(defun openpty (&optional (flags sb-posix:o-rdwr))
+  "Open pseudo-tty, return stream and path"
+  (let ((fd (sb-posix:posix-openpt flags)))
+    (handler-case
+	(let* ((name (sb-posix:ptsname fd))
+	       (path (pathname name)))
+	  (sb-posix:unlockpt fd)
+	  (sb-posix:grantpt fd)
+	  (values 
+	   (sb-sys:make-fd-stream fd
+				  :input t
+				  :output t
+				  :element-type :default
+				  :buffering :line
+				  :external-format :latin-1
+				  :pathname path
+				  :name path
+				  :auto-close nil)
+	   (pathname path)))
+      (error (error)
+	(sb-posix:close fd)
+	(error error)))))
 (defun openraw (pathname 
 		&key (speed 57600) (ispeed speed) (ospeed speed)
 		  (bits 8) (parity nil) (stop nil)
